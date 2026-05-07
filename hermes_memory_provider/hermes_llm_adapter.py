@@ -24,7 +24,7 @@ Behavior:
 Failure mode: any failure (Hermes import error, ``call_llm`` exception, no
 extractable content) returns ``None``. The Mnemosyne caller treats that as
 "host attempted, no usable text" and falls through to the local GGUF path
-(never to ``MNEMOSYNE_LLM_BASE_URL`` — see decision A3 in the plan).
+(never to ``MNEMOSYNE_LLM_BASE_URL`` -- see decision A3 in the plan).
 """
 
 from __future__ import annotations
@@ -79,7 +79,7 @@ class HermesAuxLLMBackend:
             "max_tokens": max_tokens,
             "timeout": timeout,
         }
-        # Optional non-secret overrides — only include when set, so Hermes' own
+        # Optional non-secret overrides -- only include when set, so Hermes' own
         # auxiliary.compression resolution remains the default.
         if provider:
             kwargs["provider"] = provider

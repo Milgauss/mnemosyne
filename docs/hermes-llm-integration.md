@@ -1,8 +1,8 @@
 # Hermes Auxiliary LLM Integration
 
 When Mnemosyne runs as a Hermes memory provider, it can optionally route its
-LLM-backed memory operations — both consolidation (sleep) **and** structured
-fact extraction — through Hermes' authenticated auxiliary client. This lets a
+LLM-backed memory operations -- both consolidation (sleep) **and** structured
+fact extraction -- through Hermes' authenticated auxiliary client. This lets a
 Hermes user reuse their configured provider (including OAuth-backed providers
 such as `openai-codex`) without giving Mnemosyne its own credentials.
 
@@ -13,7 +13,7 @@ key (`MNEMOSYNE_LLM_BASE_URL` / `MNEMOSYNE_LLM_API_KEY`). That cannot reach
 OAuth/session-backed providers like ChatGPT/Codex. Hermes already authenticates
 those providers through `agent.auxiliary_client.call_llm(task="compression", ...)`,
 so the cleanest fix is for Mnemosyne to delegate to that helper when it is
-running inside Hermes — without dragging Hermes' auth into Mnemosyne core.
+running inside Hermes -- without dragging Hermes' auth into Mnemosyne core.
 
 ## Behavior
 
@@ -36,7 +36,7 @@ when Mnemosyne is loaded as a Hermes memory provider):
 1. Remote OpenAI-compatible API (only if MNEMOSYNE_LLM_BASE_URL is set
    AND MNEMOSYNE_HOST_LLM_ENABLED is unset/false).
 2. Local llama-cpp-python / ctransformers GGUF (TinyLlama by default).
-3. Return None (consolidation) or [] (extraction) — caller falls back to
+3. Return None (consolidation) or [] (extraction) -- caller falls back to
    the existing non-LLM path.
 ```
 
@@ -56,7 +56,7 @@ MNEMOSYNE_HOST_LLM_ENABLED=true
 
 # Optional: override the host default compression provider/model for
 # Mnemosyne calls. Leave unset to inherit Hermes' auxiliary.compression
-# resolution. These are NOT credentials — Hermes still owns auth, OAuth
+# resolution. These are NOT credentials -- Hermes still owns auth, OAuth
 # refresh, and transport.
 MNEMOSYNE_HOST_LLM_PROVIDER=openai-codex
 MNEMOSYNE_HOST_LLM_MODEL=gpt-5.1-mini
@@ -64,7 +64,7 @@ MNEMOSYNE_HOST_LLM_MODEL=gpt-5.1-mini
 # Optional: prompt context budget when the host is the chosen path.
 # Default 32000. The existing MNEMOSYNE_LLM_N_CTX (default 2048) is
 # calibrated for TinyLlama and is far too small for typical Codex/GPT
-# context windows — using it as the host budget produces wastefully many
+# context windows -- using it as the host budget produces wastefully many
 # small chunks and lossy multi-chunk summaries.
 MNEMOSYNE_HOST_LLM_N_CTX=32000
 
@@ -102,7 +102,7 @@ the right path. Configure the provider through your normal Hermes login
 Fact extraction uses `temperature=0.0` so re-ingesting the same content
 produces the same facts. This avoids near-duplicate writes to the facts
 table when the same conversation is processed twice. Consolidation continues
-to use `temperature=0.3` — paraphrasing variance is acceptable there.
+to use `temperature=0.3` -- paraphrasing variance is acceptable there.
 
 ## Session shutdown
 
@@ -113,7 +113,7 @@ unblocked; the daemon thread continues in the background and is reaped when
 the process exits. A warning is logged when the timeout fires:
 
 ```text
-WARNING  Mnemosyne session-end sleep timed out after 15s — consolidation deferred
+WARNING  Mnemosyne session-end sleep timed out after 15s -- consolidation deferred
 ```
 
 This protects Hermes from getting stuck on a slow LLM provider during
