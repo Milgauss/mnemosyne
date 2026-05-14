@@ -29,16 +29,16 @@ _STANDARD_STOP_WORDS: Set[str] = {
 }
 
 # Meta/system words that are NOT meaningful entities — extracted noise
-# from LLM-generated summaries and extraction prompts
+# from LLM-generated summaries and extraction prompts.
+# Keep only genuinely never-valid entities (meta-words from LLM output
+# format tokens like "ASSISTANT:", "USER:", prompt-level markers).
+# Technical terms, project names, and common nouns in AI conversations
+# are NOT stopwords — they may be legitimate entities.
 _META_STOP_WORDS: Set[str] = {
     "assistant", "user", "skill", "review", "target", "class",
     "level", "signals", "phase", "api", "pi", "summary", "added",
-    "active", "not", "whether", "all", "no", "replying",
-    "ai", "memory", "mnemosyne", "conversation", "fact",
-    "false", "true", "none", "null", "signal",
-    "hermes", "agent", "model", "system",
-    "note", "task", "project", "result", "output", "input", "data",
-    "step", "process", "point", "way", "thing", "time", "work",
+    "replying", "false", "true", "none", "null", "signal",
+    "active", "not", "whether", "all", "no",
 }
 
 # Combined stopword set — the single source of truth for all callers.
