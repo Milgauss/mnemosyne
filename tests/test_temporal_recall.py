@@ -317,7 +317,7 @@ class TestTemporalRecallEndToEnd(unittest.TestCase):
 
     def test_temporal_with_entities(self):
         """Temporal scoring works alongside entity extraction (Phase 1)."""
-        self.beam.remember("Abdias founded Mnemosyne in New York",
+        self.beam.remember("Last year Abdias founded Mnemosyne in New York",
                            source="test", importance=0.8,
                            extract_entities=True)
 

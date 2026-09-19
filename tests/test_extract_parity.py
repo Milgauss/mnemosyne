@@ -219,7 +219,7 @@ class TestWrapperExtractEntitiesParity:
         db_path = tmp_path / "c12b.db"
         mem = Mnemosyne(session_id="c12b", db_path=db_path)
         mem.remember(
-            "'Okay,' Alice said. 'The room is quiet now.' Bob nodded.",
+            "'Okay,' Alice said. 'The room is quiet now,' and Bob nodded.",
             source="user",
             extract_entities=True,
         )

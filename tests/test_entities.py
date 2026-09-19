@@ -89,7 +89,7 @@ class TestRegexEntityExtraction(unittest.TestCase):
         self.assertIn("Abdias", result)
 
     def test_multiple_names(self):
-        result = extract_entities_regex("Abdias and Maya went to New York.")
+        result = extract_entities_regex("We saw Abdias and Maya go to New York.")
         self.assertIn("Abdias", result)
         self.assertIn("Maya", result)
         self.assertIn("New York", result)
@@ -109,8 +109,8 @@ class TestRegexEntityExtraction(unittest.TestCase):
         )
         self.assertNotIn("Okay,", result)
         self.assertNotIn("The room is quiet now.", result)
-        # The bare capitalized word is still a candidate; the fragment is not.
-        self.assertIn("Okay", result)
+        # The bare word opens a sentence, so the position rule drops it too.
+        self.assertNotIn("Okay", result)
         # Double quotes, and a value no capitalized pattern can reproduce, so
         # this one bites if the double-quote pattern ever comes back. The
         # comma is what let it dodge the stop-word filter before.
@@ -122,9 +122,74 @@ class TestRegexEntityExtraction(unittest.TestCase):
     def test_name_in_a_quoted_sentence_is_no_longer_swallowed(self):
         # The span used to be stored whole, and the substring post-filter then
         # dropped the name inside it for being part of a longer entity.
-        result = extract_entities_regex("'Talia pauses.' Then she smiled.")
+        result = extract_entities_regex("'And then Talia pauses.' She smiled.")
         self.assertIn("Talia", result)
-        self.assertNotIn("Talia pauses.", result)
+        self.assertNotIn("And then Talia pauses.", result)
+
+    def test_sentence_initial_word_is_not_an_entity(self):
+        # A single capitalized word at a sentence start is sentence case,
+        # not a name. Multi-word names and @/# forms are untouched.
+        self.assertEqual(
+            extract_entities_regex("Then we went out. Okay, sounds good. Maybe later."),
+            [],
+        )
+        self.assertEqual(extract_entities_regex("I told Maya about it."), ["Maya"])
+        self.assertEqual(extract_entities_regex("New York is loud."), ["New York"])
+
+    def test_sentence_opening_name_is_lost(self):
+        # The accepted cost of the position rule: a single-word name that
+        # only ever opens a sentence does not extract from that text.
+        self.assertEqual(extract_entities_regex("Maya went home."), [])
+        self.assertEqual(
+            extract_entities_regex("Maya went home. We all miss Maya."), ["Maya"]
+        )
+
+    def test_speaker_prefix_is_a_sentence_start(self):
+        self.assertEqual(extract_entities_regex("[USER] Yes, I did that."), [])
+        self.assertEqual(
+            extract_entities_regex("[USER] I told Maya about it."), ["Maya"]
+        )
+        # A bracket closing mid-sentence is not a speaker prefix.
+        self.assertEqual(
+            extract_entities_regex("[USER] She said [note] Maya was late."), ["Maya"]
+        )
+
+    def test_closed_emphasis_span_is_a_sentence_start(self):
+        self.assertEqual(extract_entities_regex("*I smile.* Yes, sounds good."), [])
+
+    def test_contraction_stem_is_not_an_entity(self):
+        self.assertEqual(extract_entities_regex("[ASSISTANT] Don't worry."), [])
+        self.assertEqual(extract_entities_regex("and then Haven't we all."), [])
+        # A possessive keeps its name.
+        self.assertEqual(extract_entities_regex("I love Maya's cooking."), ["Maya"])
+
+    def test_word_opening_a_quoted_phrase_is_not_an_entity(self):
+        # Title case of a quoted heading, first word of quoted speech.
+        self.assertEqual(
+            extract_entities_regex('Read the "Guarded canonical calls" section first.'),
+            [],
+        )
+        self.assertEqual(
+            extract_entities_regex("I have no way to execute Python here."), ["Python"]
+        )
+        self.assertEqual(
+            extract_entities_regex('the word "Python" appears twice.'), ["Python"]
+        )
+        # A quoted name alone, a quoted possessive and a quoted list keep
+        # their names; a name later in the quote does too.
+        self.assertEqual(
+            extract_entities_regex(
+                "he named the boat 'Alice' and filed \"Maya's notes\" under ['Bob', 'Priya']."
+            ),
+            ["Alice", "Bob", "Maya", "Priya"],
+        )
+        self.assertEqual(
+            extract_entities_regex('The sign read "ask Maya first" twice.'), ["Maya"]
+        )
+        # Accepted cost: a name opening a quoted phrase is lost from that text.
+        self.assertEqual(
+            extract_entities_regex('The sign read "Maya was here" twice.'), []
+        )
 
     def test_no_entities(self):
         result = extract_entities_regex("the quick brown fox jumps")
@@ -153,7 +218,7 @@ class TestRegexEntityExtraction(unittest.TestCase):
 
     def test_mixed_content(self):
         result = extract_entities_regex(
-            "Abdias said: 'The Mnemosyne project is #Awesome. "
+            "In the end Abdias said: 'The Mnemosyne project is #Awesome. "
             "Contact @support or visit New York.'"
         )
         self.assertIn("Abdias", result)

@@ -112,9 +112,9 @@ class TestEntityStorageIntegration(unittest.TestCase):
         # Store multiple memories with entities
         # Each memory gets a unique subject so TripleStore.add() doesn't invalidate
         memories = [
-            ("mem_1", "Abdias likes Mnemosyne"),
+            ("mem_1", "We heard that Abdias likes Mnemosyne"),
             ("mem_2", "Maya works on Mnemosyne too"),
-            ("mem_3", "Abdias and Maya are founders"),
+            ("mem_3", "The founders are Abdias and Maya"),
         ]
         
         for mem_id, content in memories:
@@ -188,7 +188,7 @@ class TestEndToEndEntityWorkflow(unittest.TestCase):
 
     def test_extract_and_store_entities(self):
         """Complete workflow: extract entities and store as triples."""
-        content = "Abdias founded Mnemosyne in New York."
+        content = "Last year Abdias founded Mnemosyne in New York."
         memory_id = remember(content, importance=0.9)
         
         # Extract entities manually
@@ -216,12 +216,12 @@ class TestEndToEndEntityWorkflow(unittest.TestCase):
         memory_ids = []
         for i in range(3):
             mid = remember(
-                f"Memory {i}: Abdias did something important.",
+                f"Memory {i}, where Abdias did something important.",
                 importance=0.7
             )
             memory_ids.append(mid)
             # Extract and store entities
-            entities = extract_entities_regex(f"Memory {i}: Abdias did something important.")
+            entities = extract_entities_regex(f"Memory {i}, where Abdias did something important.")
             for entity in entities:
                 # Use composite subject to avoid invalidation
                 self.store.add(f"{mid}:{entity}", "mentions", entity)

@@ -109,13 +109,13 @@ class TestProactiveEntityLinking:
         beam = _make_beam(tmp_path)
         # First memory: Alice mentioned in content (entities extracted via regex)
         mid_a = beam.remember(
-            "Alice is a senior developer at TechCorp. She writes Rust code.",
+            "The senior developer Alice works at TechCorp. She writes Rust code.",
             importance=0.8, extract_entities=True
         )
 
         # Second memory: also about Alice
         mid_b = beam.remember(
-            "Alice is working on the new authentication system. She reviews pull requests.",
+            "This week Alice is working on the new authentication system. She reviews pull requests.",
             importance=0.8, extract_entities=True
         )
 
@@ -316,9 +316,9 @@ class TestEdgeTypesAndWeights:
     def test_entity_edge_type(self, tmp_path):
         """Entity-based links should use 'references' as edge_type."""
         beam = _make_beam(tmp_path)
-        mid_a = beam.remember("Jane is a talented architect. Jane uses AutoCAD daily.",
+        mid_a = beam.remember("Our architect Jane is talented. Every day Jane uses AutoCAD.",
                       importance=0.8, extract_entities=True)
-        mid_b = beam.remember("Jane is designing the new office building. Jane reviews blueprints.",
+        mid_b = beam.remember("This month Jane is designing the new office building and reviews blueprints.",
                               importance=0.8, extract_entities=True)
 
         # Verify references edge exists in graph_edges directly (traversal

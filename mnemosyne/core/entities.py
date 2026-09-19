@@ -46,6 +46,61 @@ _STOP_WORDS = ENTITY_EXTRACTION_STOP_WORDS
 # REGEX PATTERNS FOR ENTITY EXTRACTION
 # =============================================================================
 
+# Single capitalized word (fallback): Abdias, Python, John.
+# Named so extract_entities_regex can tell this pattern's matches apart:
+# they alone get the position drops below.
+_SINGLE_CAP_WORD = re.compile(r'\b([A-Z][a-zA-Z]{1,20})\b')
+
+# Sentence-initial single capitalized words are ordinary sentence case
+# ("Then", "So", "Okay"), not names. A word is sentence-initial at the start
+# of the text, or when the nearest non-space character before it (closing
+# quotes and brackets are skipped too, and the * closing a markdown emphasis
+# span) ends a sentence, or when it is the first word of a stored turn: a
+# speaker prefix such as `[USER] ` or `[ASSISTANT] `, a bracketed uppercase
+# word opening its line and followed by a space, counts as a sentence start.
+# Only that shape does: a bracket closing mid-sentence is skipped like any
+# closer, and the name after it extracts.
+_SENTENCE_TERMINATORS = frozenset(".!?:;\u2026\n\r")
+_TRAILING_CLOSERS = frozenset("\"')]}*\u2019\u201d")
+_SPEAKER_PREFIX = re.compile(r'\[[A-Z]+\]')
+
+# A contraction stem is not a name: an apostrophe is a word boundary, so
+# "Don't" matched "Don" and "Haven't" matched "Haven". A single word followed
+# by an apostrophe and an unambiguous contraction tail is rejected. The 's
+# tail is ambiguous ("Let's", "Alice's") and goes to the name: a possessive
+# is the one form a name takes in a sentence about the person.
+_CONTRACTION_TAIL = re.compile(r"['\u2019](?:t|ll|re|ve|d|m)\b", re.IGNORECASE)
+
+# The word opening a quoted phrase is capitalized by position, like a
+# sentence opener: the title case of a quoted heading ("Guarded canonical
+# calls"), the first word of quoted speech ('Still us.'). Only the phrase
+# shape is dropped, an opening quote right before the word and a lowercase
+# word right after it. A quoted name standing alone ('Alice'), a quoted
+# possessive ("Alice's notes") and a quoted list (['Alice', 'Maya']) keep
+# their names.
+_OPENING_QUOTES = frozenset("\"'\u201c\u2018")
+_LOWERCASE_FOLLOWER = re.compile(r' [a-z]')
+
+
+def _opens_quoted_phrase(text: str, start: int, end: int) -> bool:
+    if start == 0 or text[start - 1] not in _OPENING_QUOTES:
+        return False
+    if start > 1 and text[start - 2].isalnum():
+        return False
+    return _LOWERCASE_FOLLOWER.match(text, end) is not None
+
+
+def _is_sentence_initial(text: str, pos: int) -> bool:
+    i = pos - 1
+    while i >= 0 and (text[i] in " \t" or text[i] in _TRAILING_CLOSERS):
+        if text[i] == "]" and text[i + 1] in " \t":
+            line_start = max(text.rfind("\n", 0, i), text.rfind("\r", 0, i)) + 1
+            if _SPEAKER_PREFIX.fullmatch(text, line_start, i + 1):
+                return True
+        i -= 1
+    return i < 0 or text[i] in _SENTENCE_TERMINATORS
+
+
 _ENTITY_PATTERNS = [
     # @mentions: @username
     re.compile(r'@(\w{2,30})'),
@@ -59,7 +114,7 @@ _ENTITY_PATTERNS = [
     # Capitalized word sequences (2-5 words): New York, Abdias J, San Francisco Bay Area
     re.compile(r'\b([A-Z][a-zA-Z]*(?:\s+[A-Z][a-zA-Z]*){1,4})\b'),
     # Single capitalized word (fallback): Abdias, Python, John
-    re.compile(r'\b([A-Z][a-zA-Z]{1,20})\b'),
+    _SINGLE_CAP_WORD,
 ]
 
 
@@ -163,6 +218,21 @@ def extract_entities_regex(text: str) -> List[str]:
                 continue
             # Filter out pure numbers
             if entity.replace('.', '').replace(',', '').isdigit():
+                continue
+            # Drop sentence-initial single capitalized words: ordinary
+            # vocabulary capitalized by sentence position, not a name. A real
+            # name still extracts from any mid-sentence occurrence, from a
+            # multi-word sequence, or with an @/# prefix (those come from
+            # the other patterns, which skip this).
+            if pattern is _SINGLE_CAP_WORD and _is_sentence_initial(text, match.start(1)):
+                continue
+            # Drop a contraction stem ("Don" of "Don't"); a possessive keeps
+            # its name.
+            if pattern is _SINGLE_CAP_WORD and _CONTRACTION_TAIL.match(text, match.end(1)):
+                continue
+            # Drop the word opening a quoted phrase; a name anywhere else in
+            # the quote still extracts.
+            if pattern is _SINGLE_CAP_WORD and _opens_quoted_phrase(text, match.start(1), match.end(1)):
                 continue
             # Filter out standalone lowercase words (unless @-mentioned/#-tagged)
             # But allow @mentions and hashtags which are lowercase by nature
